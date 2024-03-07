@@ -1,8 +1,7 @@
 const mongoose = require("mongoose")
-const logger = require('../logger/logger')
-const { mongoConfig } = require('../../.env')
+const logger = require('../../logger/logger')
 
-const mongoUrl = `mongodb://${mongoConfig.user}:${mongoConfig.password}@${mongoConfig.host}:${mongoConfig.port}/${mongoConfig.database}`
+const mongoUrl = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PSWD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}`
 
 const bootMongo = app => {
     logger.info(`[Mongo] Conectando em ${mongoUrl}`)

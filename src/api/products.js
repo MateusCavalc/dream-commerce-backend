@@ -1,14 +1,19 @@
+const { Schema } = require('mongoose')
 const logger = require('../logger/logger')
 
 module.exports = app => {
 
-    const product = app.mongo.model('product', {
-        name: String,
-        description: String,
-        price: Number,
-        categories: Array,
-        createdAt: Date
-    })
+    const product = app.mongo.model('product',
+        new Schema({
+            name: String,
+            description: String,
+            price: Number,
+            image: String,
+            ownerId: String,
+            categories: Array,
+            createdAt: Date
+        })
+    )
 
     return {
         add: (req, res) => {
@@ -20,6 +25,7 @@ module.exports = app => {
                 name: data.name,
                 description: data.description,
                 price: data.price,
+                image: req.file.filename,
                 categories: data.categories,
                 createdAt: new Date()
             })
@@ -32,6 +38,8 @@ module.exports = app => {
                         id: doc._id,
                         name: doc.name,
                         description: doc.description,
+                        price: doc.price,
+                        image: doc.image,
                         categories: doc.categories,
                         createdAt: doc.createdAt
                     }
