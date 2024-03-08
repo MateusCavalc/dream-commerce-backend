@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Mateus Freitas Cavalcanti",
   "license": "ISC",
   "dependencies": {
     "bcrypt-nodejs": "^0.0.3",
@@ -25,5 +25,8 @@
     "pg": "^8.11.3",
     "pm2": "^5.3.1",
     "winston": "^3.12.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
