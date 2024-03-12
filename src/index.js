@@ -14,12 +14,17 @@ logger.info('Starting server...')
 
 app.use(express.static(path.join(process.cwd(), process.env.STORAGE_IMAGES_PATH)))
 
+app.use((req, _, next) => {
+    logger.info(`${req.method} - ${req.path}`)
+    next()
+})
+
 bootPg(app)
 bootMongo(app)
 
 consign()
     .include('./src/config/middlewares.js')
-    .then('./src/api/utils/validation.js')
+    .then('./src/api/utils')
     .then('./src/api')
     .then('./src/config/routes.js')
     .into(app)

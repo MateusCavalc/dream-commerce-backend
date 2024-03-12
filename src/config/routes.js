@@ -26,10 +26,16 @@ module.exports = app => {
         .post(app.src.api.users.save)
         .get(app.src.api.users.get)
 
+    app.route('/users/names')
+        .get(app.src.api.users.getUsersNames)
+
     app.route('/users/:id')
         .get(app.src.api.users.getById)
         .put(app.src.api.users.save)
         .delete(app.src.api.users.remove)
+
+    app.route('/users/pswd/:id')
+        .put(app.src.api.users.updatePassword)
 
     // --------
     // PRODUCTS
@@ -37,4 +43,8 @@ module.exports = app => {
     app.route('/products')
         .post(upload.single('image'), app.src.api.products.add)
         .get(app.src.api.products.getAll)
+
+    app.route('/products/:id')
+        .delete(app.src.api.products.remove)
+
 }

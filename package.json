@@ -28,5 +28,8 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "devDependencies": {
+    "http-status-codes": "^2.3.0"
   }
 }

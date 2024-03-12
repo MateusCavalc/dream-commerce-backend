@@ -1,4 +1,4 @@
-module.exports = app => {
+module.exports = () => {
     function existsOrError(value, msgOnError) {
         // não existe value
         if (!value) throw msgOnError

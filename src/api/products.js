@@ -1,7 +1,12 @@
 const { Schema } = require('mongoose')
-const logger = require('../logger/logger')
+const { StatusCodes } = require('http-status-codes')
 
 module.exports = app => {
+
+    const {
+        successResponse,
+        errorResponse
+    } = app.src.api.utils.responses
 
     const product = app.mongo.model('product',
         new Schema({
@@ -17,24 +22,24 @@ module.exports = app => {
 
     return {
         add: (req, res) => {
-            logger.info(`${req.method} - ${req.path}`)
 
             const data = req.body
+
+            console.log(data)
 
             const newProduct = new product({
                 name: data.name,
                 description: data.description,
                 price: data.price,
                 image: req.file.filename,
+                ownerId: data.ownerId,
                 categories: data.categories,
                 createdAt: new Date()
             })
 
             newProduct.save()
-                .then(doc => res.status(201).json({
-                    status: 201,
-                    msg: "Produto adicionado com sucesso",
-                    data: {
+                .then(doc => successResponse(res, StatusCodes.CREATED, "Produto criado",
+                    {
                         id: doc._id,
                         name: doc.name,
                         description: doc.description,
@@ -42,37 +47,24 @@ module.exports = app => {
                         image: doc.image,
                         categories: doc.categories,
                         createdAt: doc.createdAt
-                    }
-                }))
-                .catch((err) => {
-                    logger.error(`${err.message}`)
-                    res.status(500).json({
-                        status: 500,
-                        msg: err.message ?? "Erro interno, consulte o log",
-                        data: { ...err }
                     })
-                })
+                )
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível criar o produto", {}))
         },
         getAll: (req, res) => {
-            logger.info(`${req.method} - ${req.path}`)
-
             product.find({}, {
-                "_id": 0,
-                "__v": 0
+                "__v": 0,
+                "createdAt": 0
             }, { sort: { 'createdAt': -1 } })
-                .then(products => res.status(200).json({
-                    status: 200,
-                    msg: "",
-                    data: [...products]
-                }))
-                .catch((err) => {
-                    logger.error(`${err.message}`)
-                    res.status(500).json({
-                        status: 500,
-                        msg: err.message ?? "Erro interno, consulte o log",
-                        data: { ...err }
-                    })
-                })
+                .then(products => successResponse(res, StatusCodes.OK, "", products))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os produtos", {}))
+        },
+        remove: (req, res) => {
+            const productId = req.params.id
+
+            product.deleteOne({ _id: productId })
+                .then(() => successResponse(res, StatusCodes.NO_CONTENT, "Produto removido", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os produtos", {}))
         }
     }
 }

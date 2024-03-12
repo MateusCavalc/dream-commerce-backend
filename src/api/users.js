@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt-nodejs')
-const logger = require('../logger/logger')
+const { StatusCodes } = require('http-status-codes')
 
 module.exports = app => {
     const {
@@ -8,6 +8,11 @@ module.exports = app => {
         equalsOrError
     } = app.src.api.utils.validation
 
+    const {
+        successResponse,
+        errorResponse
+    } = app.src.api.utils.responses
+
     const encryptPassword = (password) => {
         const salt = bcrypt.genSaltSync(10)
         return bcrypt.hashSync(password, salt)
@@ -15,159 +20,136 @@ module.exports = app => {
 
     // criar ou atualizar usuário
     const save = async (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
-
         const user = { ...req.body }
+
+        // se o cadastro não é dado pela rota /users -> NÃO PODE SER ADMIN
+        // if (!req.originalUrl.startsWith('/users')) user.admin = false
+        // if (!req.user || !req.user.admin) user.admin = false
 
         // se for atualização do usuário
         if (req.params.id) {
             user.id = req.params.id
-        }
 
-        // se o cadastro não é dado pela rota /users -> NÃO PODE SER ADMIN
-        if (!req.originalUrl.startsWith('/users')) user.admin = false
-        if (!req.user || !req.user.admin) user.admin = false
-
-        try {
-            existsOrError(user.name, "Nome não informado.")
-            existsOrError(user.email, "E-mail não informado.")
-            existsOrError(user.password, "Senha não informada.")
-            existsOrError(user.passwordConfirmation, "Confirmação de senha não informada.")
-            equalsOrError(user.password, user.passwordConfirmation, 'Senhas fornecidas não são equivalentes.')
-
-            const dbUser = await app.pg('users')
-                .where({ email: user.email })
-                .first()
-
-            // se NÃO tiver id, verifica se já existe o usuário
-            if (!user.id) notExistsOrError(dbUser, "Usuário já cadastrado.")
-
-        } catch (error) {
-            // para qualquer erro, envia a resposta
-            return res.status(400)
-                .json({
-                    status: 400,
-                    msg: error,
-                    data: {}
-                })
-        }
-
-        user.password = encryptPassword(user.password)
-
-        delete user.passwordConfirmation
-
-        // se tiver id, atualiza
-        if (user.id) {
+            // atualiza
             app.pg('users')
                 .update(user)
                 .where({ id: user.id })
-                .whereNull('deletedAt')
-                .then(_ => res.status(200).json({
-                    status: 200,
-                    msg: "Usuário atualizado com sucesso!",
-                    data: user
-                }))
-                .catch(err => res.status(500).json({
-                    status: 500,
-                    msg: err,
-                    data: {}
-                }))
+                .then(() => successResponse(res, StatusCodes.NO_CONTENT, "Usuário atualizado", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? 'Não foi possível atualizar o usuário'))
+
+        }
+        else {
+            // validações
+            try {
+                existsOrError(user.name, "Nome não informado.")
+                existsOrError(user.email, "E-mail não informado.")
+                existsOrError(user.password, "Senha não informada.")
+                existsOrError(user.passwordConfirmation, "Confirmação de senha não informada.")
+                equalsOrError(user.password, user.passwordConfirmation, 'Senhas fornecidas não são equivalentes.')
+
+                const dbUser = await app.pg('users')
+                    .where({ email: user.email })
+                    .first()
+
+                notExistsOrError(dbUser, "Usuário já cadastrado.")
+
+            } catch (err) {
+                // para qualquer erro, envia a resposta
+                return errorResponse(res, StatusCodes.BAD_REQUEST, err)
+            }
+
+            user.password = encryptPassword(user.password)
+
+            delete user.passwordConfirmation
+
+            // cria
+            app.pg('users')
+                .insert(user)
+                .then(() => successResponse(res, StatusCodes.CREATED, 'Usuário criado', user))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? 'Não foi possível criar o usuário'))
+
         }
 
-        app.pg('users')
-            .insert(user)
-            .then(_ => res.status(201).json({
-                status: 201,
-                msg: "Usuário criado com sucesso!",
-                data: user
-            }))
-            .catch(err => res.status(500).json({
-                status: 500,
-                msg: err,
-                data: {}
-            }))
+    }
 
+    const updatePassword = (req, res) => {
+        const user = { ...req.body }
+        user.id = req.params.id
+
+        try {
+            existsOrError(user.password, "Nova Senha não informada.")
+            existsOrError(user.passwordConfirmation, "Confirmação de nova senha não informada.")
+            equalsOrError(user.password, user.passwordConfirmation, 'Senhas fornecidas não são equivalentes.')
+
+            user.password = encryptPassword(user.password)
+
+            delete user.passwordConfirmation
+
+            app.pg('users')
+                .update(user)
+                .where({ id: user.id })
+                .then(() => successResponse(res, StatusCodes.NO_CONTENT, "Usuário atualizado", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? 'Não foi possível atualizar a senha do usuário'))
+
+        } catch (err) {
+            // para qualquer erro, envia a resposta
+            return errorResponse(res, StatusCodes.BAD_REQUEST, err)
+        }
     }
 
     const get = (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
 
         app.pg('users')
             .select('id', 'name', 'email', 'admin')
-            .whereNull('deletedAt')
-            .then(users => res.status(200).json({
-                status: 200,
-                msg: "",
-                data: users
-            }))
-            .catch(err => res.status(500).json({
-                status: 500,
-                msg: err,
-                data: {}
-            }))
+            .then(users => successResponse(res, StatusCodes.OK, '', users))
+            .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? 'Não foi possível obter os usuários'))
+
+    }
+
+    const getUsersNames = (req, res) => {
+        app.pg('users')
+            .select('id', 'name')
+            .then(userNames => successResponse(res, StatusCodes.OK, "", userNames))
+            .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os nomes dos usuários", {}))
     }
 
     const getById = async (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
 
         const userId = req.params.id
 
         const dbUser = await app.pg('users')
             .select('id', 'name', 'email', 'admin')
             .where({ id: userId })
-            .whereNull('deletedAt')
             .first()
 
         if (!dbUser) {
-            res.status(404).json({
-                status: 404,
-                msg: "Usuário não encontrado.",
-                data: {}
-            })
+            return errorResponse(res, StatusCodes.NOT_FOUND, "Usuário não encontrado", {})
         }
 
-        res.status(200).json({
-            status: 200,
-            msg: "Usuário encontrado.",
-            data: dbUser
-        })
+        return successResponse(res, StatusCodes.OK, '', dbUser)
 
     }
 
-    // soft delete
     const remove = async (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
 
         const userId = req.params.id
 
         try {
             existsOrError(userId, "Código do usuário não informado.")
 
-            const articles = await app.pg('articles')
-                .where({ userId: userId })
-            notExistsOrError(articles, "Usuário possui artigos.")
-
-            const modifiedRows = await app.pg('users')
-                .update({ deletedAt: new Date() })
+            const deletedRows = await app.pg('users')
                 .where({ id: userId })
-                .whereNull('deletedAt')
-            existsOrError(modifiedRows, "Usuário não encontrado.")
+                .del()
 
-            res.status(204).json({
-                status: 204,
-                msg: "Usuário excluído com sucesso!",
-                data: {}
-            })
-        } catch (error) {
-            return res.status(400)
-                .json({
-                    status: 400,
-                    msg: error,
-                    data: {}
-                })
+            existsOrError(deletedRows, "Usuário não encontrado.")
+
+            return successResponse(res, StatusCodes.NO_CONTENT, 'Usuário removido', {})
+
+        } catch (err) {
+            return errorResponse(res, StatusCodes.BAD_REQUEST, err.message ?? 'Não foi possível deletar o usuários')
         }
 
     }
 
-    return { save, get, getById, remove }
+    return { save, updatePassword, get, getUsersNames, getById, remove }
 }
