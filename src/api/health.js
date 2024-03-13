@@ -1,4 +1,4 @@
-const logger = require('../logger/logger')
+const logger = require('./utils/logger')
 
 module.exports = _ => {
     return {

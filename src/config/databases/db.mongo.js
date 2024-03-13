@@ -1,5 +1,5 @@
 const mongoose = require("mongoose")
-const logger = require('../../logger/logger')
+const logger = require('../../api/utils/logger')
 
 const mongoUrl = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PSWD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}`
 

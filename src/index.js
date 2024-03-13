@@ -1,6 +1,6 @@
 const express = require('express')
 const consign = require('consign')
-const logger = require('./logger/logger')
+const logger = require('./api/utils/logger')
 require('dotenv').config()
 
 const bootPg = require('./config/databases/db.pg')
@@ -23,10 +23,11 @@ bootPg(app)
 bootMongo(app)
 
 consign()
-    .include('./src/config/middlewares.js')
-    .then('./src/api/utils')
+    .include('./src/api/utils')
+    .then('./src/config/auth/passport.js')
+    .then('./src/config//middlewares/BootMiddlewares.js')
     .then('./src/api')
-    .then('./src/config/routes.js')
+    .then('./src/config/routes/routes.js')
     .into(app)
 
 app.listen(process.env.APP_PORT, () => {

@@ -1,19 +1,19 @@
 const jwt = require('jwt-simple')
 const bcrypt = require('bcrypt-nodejs')
-const logger = require('../logger/logger')
+
+const { StatusCodes } = require('http-status-codes')
 
 module.exports = app => {
 
+    const {
+        successResponse,
+        errorResponse
+    } = app.src.api.utils.responses
+
     const login = async (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
 
         if (!req.body.email || !req.body.password) {
-            return res.status(400)
-                .json({
-                    status: 400,
-                    msg: "Informe e-mail e senha.",
-                    data: {}
-                })
+            return errorResponse(res, StatusCodes.BAD_REQUEST, "Informe e-mail e senha", {})
         }
 
         try {
@@ -24,22 +24,12 @@ module.exports = app => {
 
             // se não encontra o usuário
             if (!user) {
-                return res.status(404)
-                    .json({
-                        status: 404,
-                        msg: "Usuário não cadastrado.",
-                        data: {}
-                    })
+                return errorResponse(res, StatusCodes.NOT_FOUND, "Usuário não cadastrado", {})
             }
 
             // se as senhas não batem
             if (!bcrypt.compareSync(req.body.password, user.password)) {
-                return res.status(401)
-                    .json({
-                        status: 401,
-                        msg: "E-mail e senha inválidos.",
-                        data: {}
-                    })
+                return errorResponse(res, StatusCodes.BAD_REQUEST, "E-mail e senha inválidos")
             }
 
             const now = Math.floor(Date.now() / 1000)
@@ -54,69 +44,37 @@ module.exports = app => {
 
             const token = jwt.encode(payload, process.env.AUTH_SECRET)
 
-            return res.status(200)
-                .json({
-                    status: 200,
-                    msg: "",
-                    data: {
-                        token,
-                        payload
-                    }
-                })
+            return successResponse(res, StatusCodes.OK, "", { token, payload })
 
-        } catch (error) {
-            return res.status(400)
-                .json({
-                    status: 400,
-                    msg: "Não foi possível realizar o login. Entre em contato.",
-                    data: error
-                })
+        } catch (err) {
+            return errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível realizar o login. Entre em contato.")
         }
 
     }
 
-    const validadeToken = async (req, res) => {
-        logger.info(`${req.method} - ${req.path}`)
+    const tokenValidate = async (req, res) => {
+
+        // dev: force some delay to test loading gif
+        await new Promise(done => setTimeout(() => done(), 2000));
 
         const userData = req.body
 
         try {
             if (!userData.token) {
-                return res.status(400)
-                    .json({
-                        status: 400,
-                        msg: "Token inválido",
-                        data: {
-                            auth: false
-                        }
-                    })
+                errorResponse(res, StatusCodes.BAD_REQUEST, "Token inválido")
             }
 
             const token = jwt.decode(userData.token, process.env.AUTH_SECRET)
 
             // ainda está válido?
             if (new Date(token.exp * 1000) > new Date()) {
-                return res.status(200)
-                    .json({
-                        status: 200,
-                        msg: "Token válido.",
-                        data: {
-                            auth: true
-                        }
-                    })
+                return successResponse(res, StatusCodes.OK, "", {})
             }
 
-        } catch (error) {
-            return res.status(400)
-                .json({
-                    status: 400,
-                    msg: error.message ? error.message : "Token inválido ou expirado.",
-                    data: {
-                        auth: false
-                    }
-                })
+        } catch (err) {
+            return errorResponse(res, StatusCodes.BAD_REQUEST, err.message ?? "Token inválido ou expirado.")
         }
     }
 
-    return { login, validadeToken }
+    return { login, tokenValidate }
 }

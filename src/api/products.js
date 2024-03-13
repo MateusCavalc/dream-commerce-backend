@@ -29,7 +29,7 @@ module.exports = app => {
                 "createdAt": 0
             }, { sort: { 'createdAt': -1 } })
                 .then(products => successResponse(res, StatusCodes.OK, "", products))
-                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os produtos", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os produtos"))
         },
         add: (req, res) => {
 
@@ -70,11 +70,11 @@ module.exports = app => {
                             })
 
                     } catch (err) {
-                        errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível salvar a imagem do produto", {})
+                        errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível salvar a imagem do produto")
                     }
 
                 })
-                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível criar o produto", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível criar o produto"))
         },
         update: async (req, res) => {
             const productId = req.params.id
@@ -86,7 +86,7 @@ module.exports = app => {
                     const doc = await product.findById(productId, { _id: 0, image: 1 })
 
                     if (!doc) {
-                        return errorResponse(res, StatusCodes.NOT_FOUND, "Produto não encontrado", {})
+                        return errorResponse(res, StatusCodes.NOT_FOUND, "Produto não encontrado")
                     }
 
                     const basePath = `${process.cwd()}/${process.env.STORAGE_IMAGES_PATH}`
@@ -105,13 +105,13 @@ module.exports = app => {
 
                 }
                 catch (err) {
-                    return errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível encontrar o produto", {})
+                    return errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível encontrar o produto")
                 }
             }
 
             product.findOneAndUpdate({ _id: productId }, data, {})
                 .then(() => successResponse(res, StatusCodes.NO_CONTENT, "Produto atualizado", {}))
-                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível atualizar o produto", {}))
+                .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível atualizar o produto"))
 
         },
         remove: async (req, res) => {
@@ -121,7 +121,7 @@ module.exports = app => {
                 const doc = await product.findById(productId, { _id: 0, image: 1 })
 
                 if (!doc) {
-                    return errorResponse(res, StatusCodes.NOT_FOUND, "Produto não encontrado", {})
+                    return errorResponse(res, StatusCodes.NOT_FOUND, "Produto não encontrado")
                 }
 
                 product.deleteOne({ _id: productId })
@@ -134,17 +134,17 @@ module.exports = app => {
                         } catch (err) {
                             if (err && err.code == 'ENOENT') {
                                 // file doens't exist
-                                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, "Erro interno - A imagem do produto não foi encontrada. Requer suporte!", {})
+                                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, "Erro interno - A imagem do produto não foi encontrada. Requer suporte!")
                             } else {
-                                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover a imagem do produto", {})
+                                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover a imagem do produto")
                             }
                         }
 
                     })
-                    .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover o produto", {}))
+                    .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover o produto"))
             }
             catch (err) {
-                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover o produto", {})
+                errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível remover o produto")
             }
         }
 
