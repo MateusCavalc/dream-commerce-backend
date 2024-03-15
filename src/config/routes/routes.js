@@ -37,8 +37,7 @@ module.exports = app => {
         .get(forAdmin(app.src.api.users.get))
 
     app.route('/users/names')
-        .all(app.src.config.auth.passport.authenticate)
-        .get(forAdmin(app.src.api.users.getUsersNames))
+        .get(app.src.api.users.getUsersNames)
 
     app.route('/users/:id')
         .all(app.src.config.auth.passport.authenticate)
@@ -54,7 +53,7 @@ module.exports = app => {
     // PRODUCTS
     // -------- 
     app.route('/products')
-        .get(app.src.api.products.getAll)
+        .get(app.src.api.products.get)
 
     app.route('/products')
         .all(app.src.config.auth.passport.authenticate)

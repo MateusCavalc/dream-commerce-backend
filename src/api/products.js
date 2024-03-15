@@ -17,14 +17,22 @@ module.exports = app => {
             price: Number,
             image: String,
             ownerId: String,
-            categories: Array,
+            categories: [String],
             createdAt: Date
         })
     )
 
     return {
-        getAll: (req, res) => {
-            product.find({}, {
+        get: (req, res) => {
+
+
+            const filter = req.query.filter ? {
+                categories: {
+                    "$all": req.query.filter.split(',')
+                }
+            } : {}
+
+            product.find(filter, {
                 "__v": 0,
                 "createdAt": 0
             }, { sort: { 'createdAt': -1 } })
@@ -49,9 +57,11 @@ module.exports = app => {
                 price: data.price,
                 image: storageFilename,
                 ownerId: data.ownerId,
-                categories: data.categories,
+                categories: data.categories.split(','),
                 createdAt: new Date()
             })
+
+            console.log(newProduct)
 
             newProduct.save()
                 .then(doc => {
@@ -80,7 +90,15 @@ module.exports = app => {
             const productId = req.params.id
             const data = req.body
 
-            // if a image was upload, nedd to update image in storage
+            console.log(data)
+
+            if (!data.categories) {
+                return errorResponse(res, StatusCodes.BAD_REQUEST, 'O produto precisa de pelo menos uma categoria', {})
+            }
+
+            data.categories = data.categories.split(',')
+
+            // if a image was upload, need to update image in storage
             if (req.files && req.files.length > 0) {
                 try {
                     const doc = await product.findById(productId, { _id: 0, image: 1 })
