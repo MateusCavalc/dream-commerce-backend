@@ -23,20 +23,38 @@ module.exports = app => {
     )
 
     return {
-        get: (req, res) => {
+        get: async (req, res) => {
 
+            const perPage = req.query.perPage || 6
+            const page = req.query.page || 1
 
-            const filter = req.query.filter ? {
-                categories: {
+            const filter = {}
+
+            // if query contains filter for categories, add it
+            if (req.query.filter) {
+                filter.categories = {
                     "$all": req.query.filter.split(',')
                 }
-            } : {}
+            }
+
+            const count = parseInt((await product.countDocuments(filter)))
 
             product.find(filter, {
                 "__v": 0,
                 "createdAt": 0
-            }, { sort: { 'createdAt': -1 } })
-                .then(products => successResponse(res, StatusCodes.OK, "", products))
+            }, {
+                skip: perPage * (page - 1),
+                limit: perPage,
+                sort: {
+                    'createdAt': -1
+                }
+            })
+                .then(paginated => successResponse(res, StatusCodes.OK, "", {
+                    products: paginated,
+                    page: page,
+                    perPage: perPage,
+                    total: count
+                }))
                 .catch(err => errorResponse(res, StatusCodes.INTERNAL_SERVER_ERROR, err.message ?? "Não foi possível obter os produtos"))
         },
         add: (req, res) => {
@@ -48,10 +66,12 @@ module.exports = app => {
 
             const data = req.body
 
-            const storageFilename = `${data.ownerId}-${req.files[0].originalname}`
+            const productId = new mongoose.Types.ObjectId()
+
+            const storageFilename = `${productId}-${req.files[0].originalname}`
 
             const newProduct = new product({
-                _id: new mongoose.Types.ObjectId(),
+                _id: productId,
                 name: data.name,
                 description: data.description,
                 price: data.price,
@@ -101,14 +121,14 @@ module.exports = app => {
             // if a image was upload, need to update image in storage
             if (req.files && req.files.length > 0) {
                 try {
-                    const doc = await product.findById(productId, { _id: 0, image: 1 })
+                    const doc = await product.findById(productId, { _id: 1, image: 1 })
 
                     if (!doc) {
                         return errorResponse(res, StatusCodes.NOT_FOUND, "Produto não encontrado")
                     }
 
                     const basePath = `${process.cwd()}/${process.env.STORAGE_IMAGES_PATH}`
-                    const newFilename = `${data.ownerId}-${req.files[0].originalname}`
+                    const newFilename = `${doc._id}-${req.files[0].originalname}`
                     const oldImagePath = `${basePath}/${doc.image}`
                     const newImagePath = `${basePath}/${newFilename}`
 
