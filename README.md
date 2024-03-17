@@ -1,2 +1,7 @@
-# dream-commerce-backend
-Repository used to keep my dream commerce backend application safe.
+# Dream Commerce (backend)
+
+This is a personal project that implements the backend of a e-commerce called 'Dream Commerce'. 
+
+## Authors
+
+- [@MateusCavalc](https://github.com/MateusCavalc)
